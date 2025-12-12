@@ -167,7 +167,7 @@ const browser = await puppeteer.launch({
   ],
   defaultViewport: chromium.defaultViewport,
   executablePath: await chromium.executablePath(),
-  headless: chromium.headless,
+  headless: true,  // ← 直接指定
 });
 
     const page = await browser.newPage();
