@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
 });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle' });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
