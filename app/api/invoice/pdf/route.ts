@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 60秒のタイムアウト
 export async function OPTIONS(request: NextRequest) {
   console.log('✅ OPTIONS request received');
   return new NextResponse(null, {
@@ -148,8 +149,22 @@ export async function POST(request: NextRequest) {
 
     const html = generateInvoiceHTML(body);
 
-    const browser = await puppeteer.launch({
-  args: chromium.args,
+console.log('🚀 Launching Puppeteer...');
+
+// Chromiumの設定を最適化
+chromium.setGraphicsMode = false;
+chromium.setHeadlessMode = true;
+
+const browser = await puppeteer.launch({
+  args: [
+    ...chromium.args,
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--disable-setuid-sandbox',
+    '--no-sandbox',
+    '--single-process',
+    '--no-zygote',
+  ],
   defaultViewport: chromium.defaultViewport,
   executablePath: await chromium.executablePath(),
   headless: chromium.headless,
