@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import chromium from '@sparticuz/chromium';
-import playwright from 'playwright-core';
+import puppeteer from 'puppeteer-core';
 
-// ⚠️ 重要：これらの設定を追加
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -18,7 +17,6 @@ interface InvoiceData {
   billingCycle: 'monthly' | 'yearly';
 }
 
-// CORSヘッダーを定数として定義
 const corsHeaders = {
   'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Allow-Origin': '*',
@@ -434,12 +432,11 @@ function generateInvoiceHTML(data: InvoiceData): string {
   `;
 }
 
-// ⚠️ GETハンドラーを追加（デバッグ用）
 export async function GET(request: NextRequest) {
   console.log('✅ GET request received');
   return NextResponse.json(
     { 
-      message: 'PDF API is running',
+      message: 'PDF API is running with Puppeteer',
       endpoint: '/api/invoice/pdf',
       methods: ['GET', 'POST', 'OPTIONS'],
       status: 'OK'
@@ -451,7 +448,6 @@ export async function GET(request: NextRequest) {
   );
 }
 
-// OPTIONSハンドラー（preflightリクエスト対応）
 export async function OPTIONS(request: NextRequest) {
   console.log('✅ OPTIONS request received');
   return new NextResponse(null, {
@@ -460,7 +456,6 @@ export async function OPTIONS(request: NextRequest) {
   });
 }
 
-// POSTハンドラー
 export async function POST(request: NextRequest) {
   console.log('✅ POST request received');
   
@@ -483,14 +478,16 @@ export async function POST(request: NextRequest) {
 
     const html = generateInvoiceHTML(body);
 
-    const browser = await playwright.chromium.launch({
+    // Puppeteerでブラウザを起動
+    const browser = await puppeteer.launch({
       args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: true,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle' });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
 
     const pdf = await page.pdf({
       format: 'A4',
