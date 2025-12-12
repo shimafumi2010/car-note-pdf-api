@@ -1,5 +1,6 @@
 node_modules/
 npm-debug.log
-next-env.d.ts
+.next/
+out/
 *.log
 .DS_Store
