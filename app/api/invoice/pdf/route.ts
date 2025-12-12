@@ -148,11 +148,12 @@ export async function POST(request: NextRequest) {
 
     const html = generateInvoiceHTML(body);
 
-    const browser = await playwright.chromium.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
+    const browser = await puppeteer.launch({
+  args: chromium.args,
+  defaultViewport: chromium.defaultViewport,
+  executablePath: await chromium.executablePath(),
+  headless: chromium.headless,
+});
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle' });
