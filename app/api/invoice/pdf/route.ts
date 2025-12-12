@@ -149,26 +149,24 @@ export async function POST(request: NextRequest) {
 
     const html = generateInvoiceHTML(body);
 
-console.log('🚀 Launching Puppeteer...');
+console.log('🚀 Launching Puppeteer with Chromium...');
 
-// Chromiumの設定を最適化
-chromium.setGraphicsMode = false;
-chromium.setHeadlessMode = true;
+// Chromiumの設定を最適化（重要！）
+if (chromium.setGraphicsMode) {
+  chromium.setGraphicsMode = false;
+}
+
+const executablePath = await chromium.executablePath();
+console.log('Chromium executable path:', executablePath);
 
 const browser = await puppeteer.launch({
-  args: [
-    ...chromium.args,
-    '--disable-gpu',
-    '--disable-dev-shm-usage',
-    '--disable-setuid-sandbox',
-    '--no-sandbox',
-    '--single-process',
-    '--no-zygote',
-  ],
+  args: chromium.args,
   defaultViewport: chromium.defaultViewport,
-  executablePath: await chromium.executablePath(),
-  headless: true,  // ← 直接指定
+  executablePath: executablePath,
+  headless: true,
 });
+
+console.log('✅ Browser launched successfully');
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
