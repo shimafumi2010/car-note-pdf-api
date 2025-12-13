@@ -2,8 +2,11 @@ import express from "express";
 import bodyParser from "body-parser";
 import puppeteer from "puppeteer";
 
-const app = express();
-app.use(bodyParser.json({ limit: "10mb" }));
+const browser = await puppeteer.launch({
+  executablePath: '/usr/bin/chromium',
+  args: ['--no-sandbox', '--disable-setuid-sandbox'],
+});
+
 
 // PDF生成API
 app.post("/pdf", async (req, res) => {
