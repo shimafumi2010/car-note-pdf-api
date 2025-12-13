@@ -1,14 +1,10 @@
 {
-  "name": "car-note-pdf-render-api",
+  "name": "car-note-pdf-api",
   "version": "1.0.0",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "start": "node index.js"
-  },
   "dependencies": {
-    "express": "^4.18.2",
-    "body-parser": "^1.20.2",
-    "puppeteer": "^21.6.0"
+    "puppeteer": "22.6.0"
+  },
+  "puppeteer": {
+    "skipDownload": true
   }
 }
