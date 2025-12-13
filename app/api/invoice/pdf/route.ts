@@ -1,21 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import { NextRequest, NextResponse } from "next/server";
+import chromium from "@sparticuz/chromium";
+import playwright from "playwright-core";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // 60秒のタイムアウト
-export async function OPTIONS(request: NextRequest) {
-  console.log('✅ OPTIONS request received');
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
-}
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 interface InvoiceData {
   invoiceId: string;
@@ -25,171 +13,110 @@ interface InvoiceData {
   companyName: string;
   companyAddress: string;
   companyPhone: string;
-  billingCycle: 'monthly' | 'yearly';
+  billingCycle: "monthly" | "yearly";
 }
 
-function generateInvoiceHTML(data: InvoiceData): string {
-  const invoiceDate = new Date(data.date);
-  const billingMonth = invoiceDate.toLocaleDateString('ja-JP', {
-    year: 'numeric',
-    month: 'long',
+function generateHTML(data: InvoiceData): string {
+  const d = new Date(data.date);
+  const billingMonth = d.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
   });
-
-  const nextPaymentDate = new Date(invoiceDate);
-  nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
-
-  const taxAmount = Math.floor(data.amount / 11);
+  const tax = Math.floor(data.amount / 11);
 
   return `
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<title>請求明細書</title>
-
 <style>
-  @page {
-    size: A4;
-    margin: 20mm;
-  }
-
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  body {
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #000;
-  }
-
-  .invoice-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 40px;
-  }
-
-  h1 { font-size: 28px; margin-bottom: 16px; }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
-  }
-
-  th, td {
-    padding: 12px;
-    border-bottom: 1px solid #ccc;
-  }
-
-  th { background: #f2f2f2; }
-  .right { text-align: right; }
-  .center { text-align: center; }
+@font-face {
+  font-family: "Noto Sans JP";
+  src: url("https://car-note-pdf-api.vercel.app/fonts/NotoSansJP-Regular.ttf") format("truetype");
+}
+body {
+  font-family: "Noto Sans JP", sans-serif;
+  padding: 40px;
+  font-size: 14px;
+}
+h1 { font-size: 24px; margin-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+td, th { padding: 8px; border-bottom: 1px solid #ddd; }
+th { background: #f5f5f5; }
+.total { text-align: right; font-size: 18px; font-weight: bold; }
 </style>
-
 </head>
 <body>
-  <div class="invoice-container">
-    <h1>請求明細書</h1>
 
-    <p>請求書番号：${data.invoiceId}</p>
-    <p>発行日：${invoiceDate.toLocaleDateString('ja-JP')}</p>
+<h1>請求明細書</h1>
 
-    <h3 style="margin-top:32px;">請求先</h3>
-    <p>${data.companyName} 御中</p>
-    <p>${data.companyAddress}</p>
-    <p>TEL: ${data.companyPhone}</p>
+<p>請求書番号: ${data.invoiceId}</p>
+<p>発行日: ${d.toLocaleDateString("ja-JP")}</p>
 
-    <h3 style="margin-top:32px;">請求内容</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>項目</th>
-          <th class="center">数量</th>
-          <th class="right">単価（税込）</th>
-          <th class="right">金額（税込）</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>${data.planName} ${billingMonth}分 (${data.billingCycle === 'yearly' ? '年払い' : '月払い'})</td>
-          <td class="center">1</td>
-          <td class="right">¥${data.amount.toLocaleString()}</td>
-          <td class="right">¥${data.amount.toLocaleString()}</td>
-        </tr>
-      </tbody>
-    </table>
+<h2>請求先</h2>
+<p>${data.companyName} 御中</p>
+<p>${data.companyAddress}</p>
+<p>TEL: ${data.companyPhone}</p>
 
-    <h3 style="margin-top:24px;">合計</h3>
-    <p class="right">合計（税込）：¥${data.amount.toLocaleString()}</p>
-    <p class="right">うち消費税：¥${taxAmount.toLocaleString()}</p>
+<h2>請求内容</h2>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>数量</th>
+<th>単価</th>
+<th>金額</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>${data.planName}（${billingMonth}）</td>
+<td>1</td>
+<td>¥${data.amount.toLocaleString()}</td>
+<td>¥${data.amount.toLocaleString()}</td>
+</tr>
+</tbody>
+</table>
 
-    <h3 style="margin-top:32px;">お支払い方法</h3>
-    <p>ご登録クレジットカードで自動決済されます。</p>
-    <p>次回引き落とし予定日：${nextPaymentDate.toLocaleDateString('ja-JP')}</p>
-  </div>
+<p class="total">合計金額（税込） ¥${data.amount.toLocaleString()}</p>
+<p>うち消費税 ¥${tax.toLocaleString()}</p>
+
 </body>
 </html>
 `;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = (await request.json()) as InvoiceData;
+    const body = (await req.json()) as InvoiceData;
 
-    if (!body.invoiceId || !body.date || !body.planName || !body.amount) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const html = generateInvoiceHTML(body);
-
-console.log('🚀 Launching Puppeteer with Chromium...');
-
-// Chromiumの設定を最適化（重要！）
-if (chromium.setGraphicsMode) {
-  chromium.setGraphicsMode = false;
-}
-
-const executablePath = await chromium.executablePath();
-console.log('Chromium executable path:', executablePath);
-
-const browser = await puppeteer.launch({
-  args: chromium.args,
-  defaultViewport: chromium.defaultViewport,
-  executablePath: executablePath,
-  headless: true,
-});
-
-console.log('✅ Browser launched successfully');
+    const browser = await playwright.chromium.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const html = generateHTML(body);
 
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
+    await page.setContent(html, { waitUntil: "networkidle" });
+
+    const pdf = await page.pdf({
+      format: "A4",
       printBackground: true,
     });
 
     await browser.close();
 
-    const fileName = `invoice_${body.invoiceId}.pdf`;
-
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdf, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="invoice_${body.invoiceId}.pdf"`,
       },
     });
-  } catch (err) {
-    console.error('PDF ERROR:', err);
+  } catch (e: any) {
     return NextResponse.json(
-      { error: 'Failed to generate PDF' },
+      { error: "PDF生成エラー", detail: e.message },
       { status: 500 }
     );
   }
