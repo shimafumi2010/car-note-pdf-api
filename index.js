@@ -13,7 +13,7 @@ app.post("/pdf", async (req, res) => {
       return res.status(400).send("html is required");
     }
 
-    // Puppeteer起動（Renderで必須のオプション）
+    // テストPuppeteer起動（Renderで必須のオプション）
     const browser = await puppeteer.launch({
       headless: "new",
       args: ["--no-sandbox", "--disable-setuid-sandbox"]
