@@ -1,8 +1,11 @@
 services:
   - type: web
-    name: car-note-pdf-render-api
+    name: car-note-pdf-api
     env: node
-    plan: free
-    region: singapore
+    region: singapore  # Tokyo がないため最も近い
+    plan: starter
     buildCommand: "npm install"
     startCommand: "npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production

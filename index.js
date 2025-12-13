@@ -1,56 +1,29 @@
 import express from "express";
-import bodyParser from "body-parser";
-import puppeteer from "puppeteer";
+import cors from "cors";
+import { generatePDF } from "./pdf.js";
 
-const browser = await puppeteer.launch({
-  executablePath: '/usr/bin/chromium',
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
-});
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: "10mb" }));
 
-
-// PDF生成API
-app.post("/pdf", async (req, res) => {
+app.post("/api/invoice/pdf", async (req, res) => {
   try {
     const html = req.body.html;
-    if (!html) {
-      return res.status(400).send("html is required");
-    }
+    if (!html) return res.status(400).json({ error: "html is required" });
 
-    // テストPuppeteer起動（Renderで必須のオプション）
-    const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    const pdfBuffer = await generatePDF(html);
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=invoice.pdf",
     });
 
-    const page = await browser.newPage();
-
-    // 日本語フォントの読み込み（Render はデフォルトで日本語対応）
-    await page.setContent(html, { waitUntil: "networkidle0" });
-
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: {
-        top: "20mm",
-        bottom: "20mm",
-        left: "15mm",
-        right: "15mm"
-      }
-    });
-
-    await browser.close();
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.send(pdf);
+    res.send(pdfBuffer);
   } catch (err) {
-    console.error(err);
-    res.status(500).send("PDF生成エラー: " + err);
+    console.error("PDF生成エラー:", err);
+    res.status(500).json({ error: "PDF creation failed.", detail: err.message });
   }
 });
 
-// Renderが利用するポート
-const PORT = process.env.PORT || 10000;
-
-app.listen(PORT, () => {
-  console.log("PDF API running on port " + PORT);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 API listening on port ${PORT}`));

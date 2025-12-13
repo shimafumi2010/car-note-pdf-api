@@ -1,10 +1,17 @@
 {
   "name": "car-note-pdf-api",
   "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
-    "puppeteer": "22.6.0"
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "puppeteer": "^22.0.0"
   },
   "puppeteer": {
-    "skipDownload": true
+    "skipDownload": false
   }
 }
